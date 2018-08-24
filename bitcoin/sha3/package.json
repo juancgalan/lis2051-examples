@@ -1,0 +1,22 @@
+{
+  "name": "sha3",
+  "version": "0.1.0",
+  "description": "JS implementation of the SHA3-256 algorithm",
+  "main": "index.js",
+  "repository": "https://github.com/juancgalan/sha3",
+  "author": "Juan Carlos 'zenathark' Galan Hernandez",
+  "license": "MIT",
+  "scripts": {
+    "build": "babel src -d lib",
+    "test": "jest test"
+  },
+  "dependencies": {
+    "babel-cli": "6.26.0",
+    "babel-preset-env": "1.7.0"
+  },
+  "devDependencies": {
+    "babel-core": "6.26.3",
+    "babel-jest": "23.4.2",
+    "jest": "23.5.0"
+  }
+}
