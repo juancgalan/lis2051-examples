@@ -1,0 +1,15 @@
+{
+    "name": "hello-nodejs",
+    "version": "0.1.0",
+    "scripts": {
+        "build": "babel src -d lib",
+        "main": "node lib/helloyoues6.js",
+        "promise": "node lib/helloyoues6p.js"
+    },
+    "dependencies": {
+        "babel": "6.23.0",
+        "babel-cli": "6.26.0",
+        "babel-preset-env": "1.7.0",
+        "readline-promise": "1.0.3"
+    }
+}
