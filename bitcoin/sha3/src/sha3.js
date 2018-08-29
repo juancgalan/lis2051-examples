@@ -21,7 +21,7 @@
  * 
  * @param {string} s - A string to be used for creating a sha3 state of length 
  *                     of 1600
- * @return {number[][]} - A state of sha3
+ * @return {BigInt[][]} - A state of sha3
  */
 export function createState(s) {
   var a = [[0, 0, 0, 0, 0],
@@ -41,7 +41,7 @@ export function createState(s) {
 /**
  * Create a string from a state. Inverse of createState(s).
  * 
- * @param {number[][]} a - State
+ * @param {BigInt[][]} a - State
  * @return {string} string representation of the state a
  */
 export function createString(a) {
@@ -82,4 +82,143 @@ export function wordToString(n) {
     s = String.fromCharCode(Number((n >> BigInt(i * 8)) & BigInt(0xFF))) + s;
   }
   return s;
+}
+
+export var currentState;
+
+/**
+ * Returns the i, j element from currentState after mangling the rows
+ * and columns as specified by the standard.
+ *     
+ *     2|
+ *     1|
+ * y   0|    A
+ *     4|
+ *     3|
+ *       - - - - -
+ *       3 4 0 1 2
+ *           
+ *           x
+ * 
+ * @param {Number} i Row coordinate
+ * @param {Number} j Collumn coordinate
+ */
+export function getMangledState(i, j) {
+  var x = mangledColumn(j); 
+  var y = mangledRow(i); 
+  return currentState[y][x];
+}
+
+/**
+ * Calculates the theta function of SHA3 using BigInts over currentState. 
+ * The theta function is defined on FIPS2020 in terms of bits. However, on 
+ * this function, theta is redefined using bytes and bigints(64bits).
+ * 
+ * C[x] is the parity of all columns of a sheet
+ * D[x] = C[mod(x-1, 5)] ^ C[mod(x+1)][5] R1<< 1
+ * A'[x,y] = A[x,y] ^ D[x]
+ * 
+ * @return {BigInt[][]}
+ */
+export function theta() {
+  var c = [0, 0, 0, 0, 0];
+  for(var x = 0; x < 5; x++) {
+    for(var y = 0; y < 5; y++) {
+      c[x] ^= getMangledState(x, y);
+    }
+  }
+  var d = [0, 0, 0, 0, 0];
+  for (var x = 0; x < 5; x++) {
+    d[x] = c[mod(x - 1, 5)] ^ rot1(c[mod(x + 1, 5)]);
+  }
+  var a = [[0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0]];
+  for(var x = 0; x < 5; x++) {
+    for(var y = 0; y < 5; y++) {
+      a[mangledRow(x)][mangledColumn(y)] = getMangledState(x, y) ^ d[x];
+    }
+  }
+  return a;
+}
+
+var ro_offsets = [[153, 231,   3,  10, 171],
+                  [ 55, 276,  36, 300,   6],
+                  [ 28,  91,   0,   1, 190],
+                  [120,  78, 210,  66, 253],
+                  [ 21, 136, 105,  45,  15]];
+
+export function ro() {
+  var a = [[0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0]];
+  for (var i = 0; i < 5; i++) {
+    for (var j = 0; j < 5; j++) {
+      a[mangledRow(i)][mangledColumn(j)] = rot(getMangledState(i)(j), 
+                                  ro_offsets[mangledRow(i)][mangledColumn(j)]);
+    }
+  }
+  return a;
+}
+
+/**
+ * Calculates the rho function of SHA3 using BigInts over currentState. 
+ * The theta function is defined on FIPS2020 in terms of bits. However, on 
+ * this function, theta is redefined using bytes and bigints(64bits).
+ * 
+ * C[x] is the parity of all columns of a sheet
+ * D[x] = C[mod(x-1, 5)] ^ C[mod(x+1)][5] R1<< 1
+ * A'[x,y] = A[x,y] ^ D[x]
+ * 
+ * @return {BigInt[][]}
+ */
+
+export function mangledRow(i) {
+  return (4 - i + 3) % 5;
+}
+
+export function mangledColumn(j) {
+  return (j + 3) % 5; 
+}
+
+export function mod(m, n) {
+  if (m >= 0)
+    return m % n;
+  else 
+    return (n + (m % n));
+}
+
+/**
+ * Rotates a big int one time to the left. The most significant bit is
+ * placed as the less significant bit.
+ */
+export function rot1(n) {
+  var msb = n && BigInt('0x8000000000000000');
+  var ans = n << Bigint('1');
+  if (msb > 0)
+    ans |= BigInt('1');
+  return ans;
+}
+
+/**
+ * Rotates a big int n times to the right. The less significant bits is
+ * placed as the more significant bit.
+ * 
+ * ex:
+ *     rot(0110b, 2) =  1001b
+ * 
+ * @argument {BigInt} n - Integer to be rotated
+ * @argument {Number} b - Places to rotate 
+ * @returns {BigInt} A BigInt rotated b places
+ */
+export function rot(n, b) {
+  ans = n;
+  for (var i = 0; i < b; i++) {
+    ans = rot1(ans);
+  }
+  return ans;
 }
